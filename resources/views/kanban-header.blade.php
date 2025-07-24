@@ -2,7 +2,7 @@
     <div class="flex items-center flex-shrink-0 h-10 justify-between">
 
         <div class="flex items-center">
-            <span x-tooltip="status.title.length > 30 ? status.title : false" class="block text-sm font-semibold mr-2" x-text="status.title.length > 30 ? status.title.substring(0, 40) + '...' : status.title"></span>
+            <span x-tooltip="status.title.length > 40 ? status.title : false" class="block text-sm font-semibold mr-2" x-text="status.title.length > 40 ? status.title.substring(0, 40) + '...' : status.title"></span>
 
             <span class="inline-flex items-center justify-center gap-x-1 rounded-md text-xs font-medium ring-1 ring-inset px-1.5 min-w-[theme(spacing.5)] py-0.5 tracking-tight"
                 x-bind:class="{
