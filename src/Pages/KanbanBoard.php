@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Mokhosh\FilamentKanban\Concerns\HasEditRecordModal;
 use Mokhosh\FilamentKanban\Concerns\HasStatusChange;
+use BackedEnum;
 use UnitEnum;
 
 class KanbanBoard extends Page
@@ -14,7 +15,7 @@ class KanbanBoard extends Page
     use HasEditRecordModal;
     use HasStatusChange;
 
-    protected static ?string $navigationIcon = 'heroicon-o-document-text';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-document-text';
 
     protected static string $view = 'filament-kanban::kanban-board';
 
