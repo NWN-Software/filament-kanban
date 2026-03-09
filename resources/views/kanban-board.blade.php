@@ -19,14 +19,14 @@
                                 badge="{{ isset($filtersBadgeCount) && $filtersBadgeCount > 0 ? $filtersBadgeCount : '' }}" />
                         </x-slot>
 
-                        <x-filament-panels::form class="font-normal p-4" wire:submit.prevent="onFilter">
+                        <form class="font-normal p-4" wire:submit.prevent="onFilter">
                             {{ $this->filtersForm }}
 
                             <x-filament::button class="w-full -mt-2" type="submit" wire:loading.attr="disabled"
                                 wire:target="onFilter">
                                 {{ __('general.apply') }}
                             </x-filament::button>
-                        </x-filament-panels::form>
+                        </form>
                     </x-filament::dropdown>
                 @endif
             </div>
