@@ -66,7 +66,6 @@
                     this.loading = false
                 },
                 init() {
-                    console.log('initzzzz')
                     document.addEventListener('statusesUpdated', (e) => {
                         this.statuses = e.detail[0].statuses
                     })
