@@ -39,6 +39,8 @@ class KanbanBoard extends Page
 
     public ?string $kanbanSearchValue = null;
 
+    protected int $perPage = 25;
+
     protected function statuses(): Collection
     {
         return static::$statusEnum::statuses();

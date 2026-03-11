@@ -113,39 +113,88 @@
                     this.$wire.statuses().then(statuses => {
                         this.statuses = statuses
                         this.loading = false
-                        this.$nextTick(() => this.initSortable())
+                        this.$nextTick(() => {
+                            this.initSortable()
+                            this.statuses.forEach(s => {
+                                if (!s.hasMore || s.loading) return
+                                const el = document.querySelector(`[data-status-id='${s.id}']`)
+                                if (el && el.scrollHeight <= el.clientHeight) {
+                                    this.loadMore(s.id)
+                                }
+                            })
+                        })
                     })
 
 
                 },
+                async loadMore(statusId) {
+                    const status = this.statuses.find(s => s.id == statusId)
+                    if (!status || status.loading || !status.hasMore) return
+
+                    status.loading = true
+                    try {
+                        const serverOffset = status._serverOffset ?? status.records.length
+                        const result = await this.$wire.loadMoreRecords(statusId, serverOffset)
+
+                        status._serverOffset = serverOffset + result.records.length
+
+                        const existingIds = new Set(status.records.map(r => r.id))
+                        const newRecords = result.records.filter(r => !existingIds.has(r.id))
+                        status.records.push(...newRecords)
+
+                        status.hasMore = result.hasMore && result.records.length > 0 && newRecords.length > 0
+                    } finally {
+                        status.loading = false
+                        status._cooldown = true
+                        setTimeout(() => {
+                            status._cooldown = false
+                        }, 300)
+                    }
+                },
                 handleStatusChange(recordId, fromStatus, toStatus) {
-                    const record = this.statuses.find(status => status.id == fromStatus).records.find(record =>
-                        record.id == recordId)
+                    const fromContainer = this.statuses.find(status => status.id == fromStatus)
+                    if (!fromContainer) return
+                    const record = fromContainer.records.find(r => r.id == recordId)
                     if (!record) return
 
-                    const fromContainer = this.statuses.find(status => status.id == fromStatus)
-                    if (fromContainer) {
-                        fromContainer.records = fromContainer.records.filter(r => r.id !== recordId)
-                    }
+                    fromContainer.records = fromContainer.records.filter(r => r.id !== recordId)
 
                     const toContainer = this.statuses.find(status => status.id == toStatus)
                     if (toContainer) {
                         toContainer.records.push(record)
                     }
+
+                    this.adjustTotals(fromContainer, toContainer, record, -1, 1)
                 },
                 addRecord(statusId, record) {
                     const status = this.statuses.find(status => status.id == statusId)
                     if (!status) return
 
                     status.records.push(record)
+                    this.adjustTotals(null, status, record, 0, 1)
                 },
                 deleteRecord(statusId, recordId) {
-                    const record = this.statuses.find(status => status.id == statusId).records.find(record =>
-                        record.id == recordId)
+                    const status = this.statuses.find(s => s.id == statusId)
+                    if (!status) return
+                    const record = status.records.find(r => r.id == recordId)
                     if (!record) return
 
-                    this.statuses.find(status => status.id == statusId).records = this.statuses.find(status => status.id ==
-                        statusId).records.filter(r => r.id !== recordId)
+                    status.records = status.records.filter(r => r.id !== recordId)
+                    this.adjustTotals(status, null, record, -1, 0)
+                },
+                adjustTotals(fromStatus, toStatus, record, fromCountDelta, toCountDelta) {
+                    if (fromStatus) {
+                        if (fromStatus.count !== undefined) fromStatus.count += fromCountDelta
+                        if (fromStatus.total !== undefined && fromStatus.totalAttribute) {
+                            fromStatus.total -= parseFloat(record[fromStatus.totalAttribute] || 0)
+                        }
+                    }
+                    if (toStatus) {
+                        if (toStatus.count !== undefined) toStatus.count += toCountDelta
+                        if (toStatus.total !== undefined && toStatus.totalAttribute) {
+                            toStatus.total += parseFloat(record[toStatus.totalAttribute] || 0)
+                        }
+                    }
                 },
                 updateRecordAttributes(statusId, recordId, attributes) {
                     let record = this.statuses.find(status => status.id == statusId).records.find(record =>
@@ -168,6 +217,7 @@
                         Sortable.create(el, {
                             group: 'filament-kanban',
                             ghostClass: 'opacity-50',
+                            filter: '.kanban-no-drag',
                             animation: 0,
                             onStart() {
                                 document.body.classList.add("grabbing")
@@ -198,6 +248,8 @@
 
                                 oldStatus.records = oldStatus.records.filter(r => r.id != recordId)
                                 newStatus.records.splice(position, 0, record);
+
+                                self.adjustTotals(oldStatus, newStatus, record, -1, 1)
 
                                 e.item.remove()
                             },
